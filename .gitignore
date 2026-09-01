@@ -1,0 +1,48 @@
+node_modules
+dist
+dist-electron
+build
+out
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+.env*.txt
+
+# API keys and credentials
+**/apikey*
+**/api_key*
+**/API_KEY*
+**/secret*
+**/credentials*
+config/credentials.*
+
+# Database files
+*.db
+*.db.bak*
+assistant_data.db*
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Temp files
+*.tmp
+temp/
+.tmp
+
+# OS
+Thumbs.db
+
+# Generated files
+routeTree.gen.ts
