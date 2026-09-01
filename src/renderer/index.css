@@ -1,0 +1,287 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════
+   JARVIS — Code Sanctum Flow Design System
+   Fonts: Orbitron (display) + JetBrains Mono (mono/body)
+═══════════════════════════════════════════════════════ */
+
+/* ── Dynamic Theme Variables ── */
+:root, [data-theme="cyan"] {
+  --color-bg: #030712;
+  --color-card: rgba(15, 23, 42, 0.75);
+  --color-card-hover: rgba(30, 41, 59, 0.85);
+  --color-border: rgba(6, 182, 212, 0.3);
+  --color-primary: #06b6d4;
+  --color-primary-glow: rgba(6, 182, 212, 0.4);
+  --color-secondary: #3b82f6;
+  --color-text: #f8fafc;
+  --color-muted: #64748b;
+  --color-accent: #22d3ee;
+  --color-danger: #f43f5e;
+  --color-success: #10b981;
+
+  --hud: oklch(0.2 0.035 264 / 78%);
+  --hud-line: rgba(34, 211, 238, 0.28);
+  --cyan: #22d3ee;
+  --blue: #3b82f6;
+  --gold: #fbbf24;
+  --violet: #a855f7;
+  --success: #10b981;
+  --warn: #f59e0b;
+  --error: #f43f5e;
+
+  /* Alias tokens for component classes */
+  --theme-primary: var(--cyan);
+  --theme-secondary: var(--blue);
+  --theme-accent: var(--cyan);
+  --theme-success: var(--success);
+  --theme-warn: var(--warn);
+  --theme-error: var(--error);
+}
+
+[data-theme="crimson"] {
+  --color-bg: #0a0307;
+  --color-card: rgba(30, 10, 18, 0.75);
+  --color-card-hover: rgba(50, 15, 28, 0.85);
+  --color-border: rgba(244, 63, 94, 0.35);
+  --color-primary: #f43f5e;
+  --color-primary-glow: rgba(244, 63, 94, 0.45);
+  --color-secondary: #e11d48;
+  --color-text: #fff1f2;
+  --color-muted: #881337;
+  --color-accent: #fb7185;
+  --color-danger: #e11d48;
+  --color-success: #10b981;
+
+  --hud: rgba(30, 10, 18, 0.85);
+  --hud-line: rgba(244, 63, 94, 0.32);
+  --cyan: #fb7185;
+  --blue: #f43f5e;
+  --gold: #fbbf24;
+  --violet: #e11d48;
+  --success: #10b981;
+  --warn: #f59e0b;
+  --error: #e11d48;
+}
+
+[data-theme="emerald"] {
+  --color-bg: #020b06;
+  --color-card: rgba(6, 30, 16, 0.75);
+  --color-card-hover: rgba(15, 48, 26, 0.85);
+  --color-border: rgba(16, 185, 129, 0.35);
+  --color-primary: #10b981;
+  --color-primary-glow: rgba(16, 185, 129, 0.45);
+  --color-secondary: #059669;
+  --color-text: #ecfdf5;
+  --color-muted: #065f46;
+  --color-accent: #34d399;
+  --color-danger: #f43f5e;
+  --color-success: #10b981;
+
+  --hud: rgba(6, 30, 16, 0.85);
+  --hud-line: rgba(16, 185, 129, 0.32);
+  --cyan: #34d399;
+  --blue: #059669;
+  --gold: #fbbf24;
+  --violet: #a855f7;
+  --success: #10b981;
+  --warn: #f59e0b;
+  --error: #f43f5e;
+}
+
+/* ── Base Typography ── */
+html, body {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: "Orbitron", sans-serif;
+}
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: rgba(3, 7, 18, 0.6); }
+::-webkit-scrollbar-thumb { background: var(--hud-line); }
+::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+/* ══════════════════════════════════════════
+   CODE SANCTUM HUD UTILITIES
+══════════════════════════════════════════ */
+
+/* HUD Panel — glassmorphic background with top cyan gradient */
+.hud-panel {
+  position: relative;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--cyan) 4%, transparent), transparent 40%),
+    var(--hud);
+  border: 1px solid var(--hud-line);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* HUD Bracket — corner angle marks */
+.hud-bracket { position: relative; }
+.hud-bracket::before,
+.hud-bracket::after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 70%, transparent);
+  pointer-events: none;
+  z-index: 10;
+}
+.hud-bracket::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.hud-bracket::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+/* HUD Label — Orbitron tiny uppercase tracking */
+.hud-label {
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--cyan) 85%, white 10%);
+}
+
+/* Fine grid background */
+.grid-fine {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--cyan) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--cyan) 7%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Scanlines overlay */
+.scanlines { position: relative; }
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.20) 0 1px,
+    transparent 1px 3px
+  );
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  z-index: 2;
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--cyan) 30%, transparent),
+    0 0 18px -6px color-mix(in srgb, var(--cyan) 70%, transparent);
+}
+
+.glass-panel {
+  background: var(--color-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+.glow-border {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 12px var(--color-primary-glow);
+}
+.glow-text { text-shadow: 0 0 8px var(--color-primary); }
+
+/* Theme helper aliases */
+.text-theme-primary  { color: var(--cyan); }
+.text-theme-secondary { color: var(--blue); }
+.text-theme-accent   { color: var(--cyan); }
+.text-theme-text     { color: var(--color-text); }
+.text-theme-muted    { color: var(--color-muted); }
+.text-theme-success  { color: var(--success); }
+.text-theme-warn     { color: var(--warn); }
+.text-theme-error    { color: var(--error); }
+.border-theme-border { border-color: var(--hud-line); }
+.bg-theme-primary    { background-color: var(--cyan); }
+
+/* ══════════════════════════════════════════
+   KEYFRAME ANIMATIONS (Code Sanctum)
+══════════════════════════════════════════ */
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+@keyframes flicker {
+  0%, 100% { opacity: 0.9; }
+  47%      { opacity: 0.75; }
+  50%      { opacity: 1; }
+  53%      { opacity: 0.8; }
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
+}
+@keyframes type-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25%      { transform: translateY(1.5px) rotate(-0.25deg); }
+  75%      { transform: translateY(-1px) rotate(0.25deg); }
+}
+@keyframes packet {
+  0%   { left: 0%;   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+@keyframes rise {
+  0%   { transform: translateY(0);     opacity: 0; }
+  20%  { opacity: 0.9; }
+  100% { transform: translateY(-34px); opacity: 0; }
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+@keyframes spin-slow-rev {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+@keyframes sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@keyframes blink {
+  0%, 49%  { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+@keyframes reactor-pulse {
+  0%, 100% { box-shadow: 0 0 20px 6px var(--cyan), 0 0 40px 10px color-mix(in srgb, var(--cyan) 40%, transparent); }
+  50%      { box-shadow: 0 0 30px 12px var(--cyan), 0 0 60px 18px color-mix(in srgb, var(--cyan) 25%, transparent); }
+}
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%      { transform: scale(1.08); opacity: 0.7; }
+}
+@keyframes data-stream {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 -100px; }
+}
+
+/* ── Utility animation classes ── */
+.anim-flicker     { animation: flicker 4s infinite steps(2, end); }
+.anim-bob         { animation: bob 3.4s ease-in-out infinite; }
+.anim-type        { animation: type-bob 0.45s ease-in-out infinite; }
+.anim-blink       { animation: blink 1s steps(1) infinite; }
+.anim-spin-slow   { animation: spin-slow 14s linear infinite; }
+.anim-spin-rev    { animation: spin-slow-rev 9s linear infinite; }
+.anim-pulse-soft  { animation: pulse-soft 2.2s ease-in-out infinite; }
+.anim-bubble      { animation: bubble-in 0.35s ease-out both; }
+.anim-reactor     { animation: reactor-pulse 2s ease-in-out infinite; }
+.anim-breathe     { animation: orb-breathe 3s ease-in-out infinite; }

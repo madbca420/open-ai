@@ -1,0 +1,53 @@
+{
+  "name": "sci-fi-ai-assistant",
+  "version": "1.0.0",
+  "description": "Sci-Fi Voice-Controlled Desktop AI Assistant",
+  "main": "dist-electron/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev:renderer": "vite",
+    "dev:electron": "npm run build:electron && electron .",
+    "dev": "concurrently -k \"vite\" \"npm run build:electron && electron .\"",
+    "build:electron": "esbuild src/main/main.ts --bundle --platform=node --target=node20 --external:electron --external:better-sqlite3 --outfile=dist-electron/main.js && esbuild src/main/preload.ts --bundle --platform=node --target=node20 --external:electron --outfile=dist-electron/preload.js",
+    "build:renderer": "vite build",
+    "build": "npm run typecheck && npm run build:renderer && npm run build:electron",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.36",
+    "@ai-sdk/google": "^4.0.39",
+    "@ai-sdk/openai": "^4.0.36",
+    "@anthropic-ai/sdk": "^0.116.0",
+    "@google/genai": "^2.16.0",
+    "ai": "^7.0.58",
+    "better-sqlite3": "^11.5.0",
+    "clsx": "^2.1.1",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.453.0",
+    "openai": "^7.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "say": "^0.16.0",
+    "tailwind-merge": "^2.5.4",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.6.0",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.19.43",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.21.5",
+    "omniroute": "^3.8.49",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.9"
+  }
+}
