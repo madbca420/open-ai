@@ -46,6 +46,14 @@ export function initDatabase() {
   // Run schema version migrations safely
   runDatabaseMigrations(db, dbPath);
 
+  // Flush any early-boot audit logs buffered before DB init
+  try {
+    const { flushPendingAuditLogs } = require('./auditLog');
+    flushPendingAuditLogs();
+  } catch {
+    /* ignore */
+  }
+
   const insertStmt = db.prepare('INSERT OR IGNORE INTO system_audit_logs (action_type, details, status) VALUES (?, ?, ?)');
   insertStmt.run('DB_INIT', 'Database initialized successfully', 'SUCCESS');
 

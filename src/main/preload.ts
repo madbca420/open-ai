@@ -107,6 +107,13 @@ export interface IElectronAPI {
   restartProject: (slug: string) => Promise<{ success: boolean; previewUrl?: string }>;
   stopProject: (slug: string) => Promise<boolean>;
   launchChrome: (url: string) => Promise<{ success: boolean; error?: string }>;
+  listProjects: () => Promise<any[]>;
+  modifyProject: (payload: { slug: string; instruction: string; provider?: string; modelName?: string }) => Promise<{ success: boolean; step?: string; changesMade?: string[]; errorLog?: string }>;
+  getProjectLogs: (slug: string) => Promise<any[]>;
+  listFreeLlmEndpoints: () => Promise<any[]>;
+  listAgenticSkills: () => Promise<any[]>;
+  discoverKeyPool: () => Promise<any[]>;
+  autoRouteModel: (prompt: string) => Promise<any>;
 
   // Tool Confirmations & Direct Exec
   respondConfirmation: (callId: string, allowed: boolean) => void;
@@ -217,6 +224,13 @@ const electronAPI: IElectronAPI = {
   restartProject: (slug) => ipcRenderer.invoke('site:restart', slug),
   stopProject: (slug) => ipcRenderer.invoke('site:stop', slug),
   launchChrome: (url) => ipcRenderer.invoke('site:launch-chrome', url),
+  listProjects: () => ipcRenderer.invoke('site:list-projects'),
+  modifyProject: (payload) => ipcRenderer.invoke('site:modify-project', payload),
+  getProjectLogs: (slug) => ipcRenderer.invoke('site:get-logs', slug),
+  listFreeLlmEndpoints: () => ipcRenderer.invoke('free-llm:list-endpoints'),
+  listAgenticSkills: () => ipcRenderer.invoke('skills:list-agentic'),
+  discoverKeyPool: () => ipcRenderer.invoke('model:discover-keys'),
+  autoRouteModel: (prompt) => ipcRenderer.invoke('model:auto-route', prompt),
 
   respondConfirmation: (callId, allowed) => ipcRenderer.send('tool:respond-confirmation', { callId, allowed }),
   executeToolDirect: (name, args) => ipcRenderer.invoke('tool:execute-direct', name, args),

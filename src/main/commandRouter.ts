@@ -866,6 +866,114 @@ export class CommandRouter {
     }
 
     // ─────────────────────────────────────────────────────────────────
+    // TIER 11: YOUTUBE AUTOMATION
+    // ─────────────────────────────────────────────────────────────────
+    if (
+      lower.includes('youtube') || lower.includes('yt script') ||
+      lower.includes('video script') || lower.includes('youtube script') ||
+      lower.includes('youtube thumbnail') || lower.includes('upload metadata') ||
+      lower.includes('yt thumbnail') || lower.includes('yt video') ||
+      lower.includes('create youtube') || lower.includes('make youtube') ||
+      lower.includes('youtube seo') || lower.includes('video metadata')
+    ) {
+      let capability = 'youtube.script.generate';
+      if (lower.includes('thumbnail')) capability = 'youtube.thumbnail.generate';
+      else if (lower.includes('upload') || lower.includes('metadata') || lower.includes('seo') || lower.includes('tags')) capability = 'youtube.upload.prepare';
+      else if (lower.includes('video') && (lower.includes('create') || lower.includes('make') || lower.includes('assemble'))) capability = 'youtube.video.create';
+
+      return {
+        id, intent: 'YOUTUBE_AUTOMATION', targetWorkspace: 'AUTOMATION', capability,
+        arguments: { topic: request.text, capability },
+        confidence: 0.9, requiresConfirmation: false, source, timestamp: now,
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // TIER 12: KIMODO 3D MOTION & AVATAR
+    // ─────────────────────────────────────────────────────────────────
+    if (
+      lower.includes('3d motion') || lower.includes('kimodo') ||
+      lower.includes('3d avatar') || lower.includes('character animation') ||
+      lower.includes('3d character') || lower.includes('pose generation') ||
+      lower.includes('motion capture') || lower.includes('skeletal animation') ||
+      lower.includes('animate character') || lower.includes('3d pose') ||
+      lower.includes('avatar pose') || lower.includes('mesh synthesis')
+    ) {
+      const capability = lower.includes('avatar') || lower.includes('pose') || lower.includes('mesh')
+        ? 'kimodo.avatar.synthesize'
+        : 'kimodo.motion.generate';
+
+      return {
+        id, intent: 'KIMODO_3D', targetWorkspace: 'CREATIVE', capability,
+        arguments: { prompt: request.text, capability },
+        confidence: 0.9, requiresConfirmation: false, source, timestamp: now,
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // TIER 13: AGENTIC SKILLS (Code Review, Security Audit, etc.)
+    // ─────────────────────────────────────────────────────────────────
+    if (
+      lower.includes('review my code') || lower.includes('code review') ||
+      lower.includes('audit my code') || lower.includes('security audit') ||
+      lower.includes('audit security') || lower.includes('owasp') ||
+      lower.includes('dockerfile') || lower.includes('docker compose') ||
+      lower.includes('design an api') || lower.includes('api design') ||
+      lower.includes('openapi schema') || lower.includes('rest api schema') ||
+      lower.includes('web scraper') || lower.includes('scrape website') ||
+      lower.includes('database schema') || lower.includes('db schema') ||
+      lower.includes('database architect') || lower.includes('sql schema')
+    ) {
+      return {
+        id, intent: 'AGENTIC_SKILL', targetWorkspace: 'DEVELOPMENT',
+        arguments: { request: request.text },
+        confidence: 0.85, requiresConfirmation: false, source, timestamp: now,
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // TIER 14: FREE LLM ENDPOINTS
+    // ─────────────────────────────────────────────────────────────────
+    if (
+      lower.includes('free llm') || lower.includes('free ai') ||
+      lower.includes('list free models') || lower.includes('groq') ||
+      lower.includes('together ai') || lower.includes('ollama') ||
+      lower.includes('huggingface') || lower.includes('free model') ||
+      lower.includes('local model') || lower.includes('offline model') ||
+      lower.includes('cohere') || lower.includes('free api')
+    ) {
+      return {
+        id, intent: 'FREE_LLM_QUERY', targetWorkspace: 'COMMAND_CENTER',
+        arguments: { query: request.text },
+        confidence: 0.85, requiresConfirmation: false, source, timestamp: now,
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // TIER 15: AGENCY AGENTS (Engineering, Creative, Marketing, Strategy, DevOps, Security)
+    // ─────────────────────────────────────────────────────────────────
+    if (
+      lower.includes('agency agent') || lower.includes('agency team') ||
+      lower.includes('engineering agency') || lower.includes('creative agency') ||
+      lower.includes('marketing agency') || lower.includes('strategy agency') ||
+      lower.includes('operations agency') || lower.includes('security agency') ||
+      lower.includes('run agency') || lower.includes('hire agency')
+    ) {
+      let capability = 'agency.engineering.build';
+      if (lower.includes('creative') || lower.includes('design') || lower.includes('ui/ux')) capability = 'agency.creative.design';
+      else if (lower.includes('marketing') || lower.includes('seo') || lower.includes('growth')) capability = 'agency.marketing.growth';
+      else if (lower.includes('strategy') || lower.includes('business') || lower.includes('roadmap')) capability = 'agency.strategy.plan';
+      else if (lower.includes('operation') || lower.includes('devops') || lower.includes('ci/cd')) capability = 'agency.operations.devops';
+      else if (lower.includes('security') || lower.includes('audit')) capability = 'agency.security.audit';
+
+      return {
+        id, intent: 'AGENCY_AGENT_TASK', targetWorkspace: 'DEVELOPMENT', capability,
+        arguments: { task: request.text, capability },
+        confidence: 0.9, requiresConfirmation: false, source, timestamp: now,
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────────
     // FALLBACK: General chat (low confidence)
     // ─────────────────────────────────────────────────────────────────
     return {

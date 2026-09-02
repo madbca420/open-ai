@@ -275,23 +275,7 @@ export default function ChatPanel() {
         return;
       }
 
-      // Electron mode: require provider configured
-      if (!activeProvider) {
-        const noProviderMsg: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: '⚠️ No AI provider configured. Go to Settings → select a provider and add an API key.',
-          error: true,
-          streaming: false,
-          timestamp: Date.now(),
-        };
-        addMessage(noProviderMsg);
-        setStatus('ERROR');
-        setTimeout(() => setStatus('IDLE'), 3000);
-        setIsStreaming(false);
-        return;
-      }
-
+      // Electron mode: execute streaming response (auto-routed fallback handles missing keys)
       await streamLLMResponse(cleanText);
     } catch (err: any) {
       console.error('[ChatPanel] Command execution error:', err);
@@ -348,7 +332,7 @@ export default function ChatPanel() {
       .map(m => ({ role: m.role, content: m.content.replace(/^🎤\s*/, '') }));
 
     const result = await window.electronAPI.streamChat({
-      provider: activeProvider!,
+      provider: (activeProvider || 'google') as any,
       model: activeModel,
       messages: context,
     });

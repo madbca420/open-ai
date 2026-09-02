@@ -1,49 +1,98 @@
-node_modules
-dist
-dist-electron
-build
-out
+# ──────────────────────────────────────────────────────
+# JARVIS AI — .gitignore
+# ALL secrets, keys, databases, and private data are EXCLUDED
+# ──────────────────────────────────────────────────────
 
-# Environment variables and secrets
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+dist-electron/
+build/
+out/
+release/
+
+# ── SECRETS & API KEYS (NEVER commit these) ───────────
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 .env*.txt
-
-# API keys and credentials
+*.env
+secrets.json
+secrets.yaml
+secrets.ts
 **/apikey*
 **/api_key*
 **/API_KEY*
-**/secret*
-**/credentials*
+**/*secret*
+**/*credential*
+**/*private_key*
 config/credentials.*
+keyVault.json
+key_vault.json
+key-vault.json
 
-# Database files
+# ── DATABASE FILES ─────────────────────────────────────
 *.db
+*.db-shm
+*.db-wal
 *.db.bak*
 assistant_data.db*
+data/
 
-# Editor and IDE
+# ── GENERATED SITES & PROJECT OUTPUT ──────────────────
+generated_sites/
+generated_projects/
+artifacts/
+
+# ── ELECTRON RELEASE ARTIFACTS ─────────────────────────
+*.exe
+*.dmg
+*.AppImage
+*.snap
+*.deb
+*.rpm
+*.msi
+*.pkg
+*.zip
+*.tar.gz
+
+# ── EDITOR & IDE ───────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
+Thumbs.db
+desktop.ini
 
-# Logs
+# ── LOGS ───────────────────────────────────────────────
 logs/
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Temp files
+# ── TEMP & CACHE ───────────────────────────────────────
 *.tmp
+*.temp
 temp/
-.tmp
+.tmp/
+.cache/
+.parcel-cache/
+.turbo/
 
-# OS
-Thumbs.db
-
-# Generated files
+# ── GENERATED / AUTO-CREATED ───────────────────────────
 routeTree.gen.ts
 open-ai/
+
+# ── COVERAGE ───────────────────────────────────────────
+coverage/
+.nyc_output/

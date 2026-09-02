@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 export function runDatabaseMigrations(db: Database.Database, dbPath: string): void {
   console.log('[DB Migration] Checking database migrations...');
@@ -326,4 +326,57 @@ export function runDatabaseMigrations(db: Database.Database, dbPath: string): vo
     migrateV3();
     console.log('[DB Migration] Migration v3 applied successfully.');
   }
+
+  if (activeVersion < 4) {
+    console.log('[DB Migration] Applying Migration v4 (Website Builder Projects Registry)...');
+
+    const migrateV4 = db.transaction(() => {
+      // Projects table — tracks every generated project
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS projects (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          slug TEXT NOT NULL UNIQUE,
+          project_dir TEXT NOT NULL,
+          project_type TEXT DEFAULT 'fullstack',
+          status TEXT DEFAULT 'CREATED',
+          frontend_port INTEGER,
+          backend_port INTEGER,
+          frontend_url TEXT,
+          backend_url TEXT,
+          metadata TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `);
+
+      // Project logs table — streaming build/runtime logs per project
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS project_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          project_id TEXT NOT NULL,
+          level TEXT DEFAULT 'INFO',
+          message TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+      `);
+
+      // Indexes
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug);
+        CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+        CREATE INDEX IF NOT EXISTS idx_project_logs_project ON project_logs(project_id);
+      `);
+
+      db.prepare('INSERT INTO schema_version (version, description) VALUES (?, ?)').run(
+        4,
+        'Website Builder Projects Registry (projects, project_logs tables)'
+      );
+    });
+
+    migrateV4();
+    console.log('[DB Migration] Migration v4 applied successfully.');
+  }
 }
+

@@ -1,5 +1,6 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, nativeImage } from 'electron';
 import path from 'path';
+import fs from 'fs-extra';
 import { initDatabase, getDatabase } from './db';
 import { saveApiKey, getApiKey, deleteApiKey, listStoredProviders, Provider } from './keyVault';
 import { streamChat, DEFAULT_MODELS, ChatMessage, resolveConfirmation } from './llmAdapter';
@@ -8,6 +9,7 @@ import { executeTool } from './tools';
 import { getAuditLogs, clearAuditLogs, logAudit } from './auditLog';
 import { getToolConfirmationSettings, setToolConfirmationSetting, ToolConfirmationMode, ToolConfirmationSettings } from './confirmation';
 import { generateSitePipeline, exportSiteAsZip, restartProjectServers, stopProjectServers, launchInChrome } from './siteGenerator';
+import { projectWorkspace } from './projectWorkspace';
 import { computeLineDiff } from './siteDiff';
 import { modelGateway } from './modelGateway';
 import { unifiedToolRegistry } from './unifiedToolRegistry';
@@ -28,6 +30,12 @@ import { agentOrchestrator } from './agentOrchestrator';
 import { ComfyUIAdapter } from './services/creative/comfyui_adapter';
 import { IOPaintAdapter } from './services/creative/iopaint_adapter';
 import { OmniVoiceAdapter, HandyAdapter, TradingAgentsAdapter, MiroFishAdapter, HeyGemAdapter, CapCutAdapter, VoiceStudioAdapter, DramaClawAdapter } from './services/voice/omnivoice_adapter';
+import { YouTubeAutomationAdapter } from './services/youtube/youtube_adapter';
+import { Kimodo3DMotionAdapter } from './services/creative/kimodo_adapter';
+import { AgencyAgentsAdapter } from './services/agency/agencyAgentsAdapter';
+import { freeLlmManager } from './services/llm/freeLlmProvider';
+import { agenticSkillsEngine } from './services/skills/agenticSkillsEngine';
+import { smartModelRouter } from './smartModelRouter';
 import { voiceInputService } from './services/voiceInputService';
 import { voiceOutputService } from './services/voiceOutputService';
 import { ensureOmniRouteRunning, stopOmniRoute } from './omnirouteService';
@@ -65,9 +73,17 @@ function createWindow() {
   eventBus.setMainWindow(mainWindow);
 
   if (isDev) {
+    let retries = 0;
+    const distIndexPath = path.join(__dirname, '../dist/index.html');
     const loadDevServer = () => {
-      mainWindow?.loadURL('http://localhost:5173').catch(() => {
-        setTimeout(loadDevServer, 500);
+      mainWindow?.loadURL('http://localhost:5173').catch(async () => {
+        retries++;
+        if (retries > 3 && fs.existsSync(distIndexPath)) {
+          console.log('[Main] Dev server not detected at http://localhost:5173 — loading production dist/index.html');
+          mainWindow?.loadFile(distIndexPath);
+        } else {
+          setTimeout(loadDevServer, 500);
+        }
       });
     };
     loadDevServer();
@@ -235,6 +251,33 @@ async function bootstrap() {
   }).catch((err) => {
     console.error('[Main] DramaClawAdapter init error:', err);
   });
+
+  // Register Real YouTube Automation Agent Adapter
+  const youtubeAdapter = new YouTubeAutomationAdapter();
+  youtubeAdapter.initialize().then(() => {
+    adapterRegistry.register(youtubeAdapter);
+  }).catch((err) => {
+    console.error('[Main] YouTubeAdapter init error:', err);
+  });
+
+  // Register NVIDIA Kimodo 3D Motion & Avatar Adapter
+  const kimodoAdapter = new Kimodo3DMotionAdapter();
+  kimodoAdapter.initialize().then(() => {
+    adapterRegistry.register(kimodoAdapter);
+  }).catch((err) => {
+    console.error('[Main] KimodoAdapter init error:', err);
+  });
+
+  // Register Agency Agents Multi-Specialist Framework Adapter
+  const agencyAgentsAdapter = new AgencyAgentsAdapter();
+  agencyAgentsAdapter.initialize().then(() => {
+    adapterRegistry.register(agencyAgentsAdapter);
+  }).catch((err) => {
+    console.error('[Main] AgencyAgentsAdapter init error:', err);
+  });
+
+  // Initialize Agentic Awesome Skills Catalog
+  agenticSkillsEngine.initialize();
 
   console.log('[JARVIS] AdapterRegistry READY');
   console.log('[JARVIS] CommandRouter READY');
@@ -437,7 +480,7 @@ function registerIPC(dbInfo: { dbPath: string; count: number }) {
 
   ipcMain.handle('site:restart', async (_e, slug: string) => {
     const active = await restartProjectServers(slug);
-    return { success: !!active, previewUrl: active?.frontendUrl };
+    return { success: !!active.success, previewUrl: active?.previewUrl };
   });
 
   ipcMain.handle('site:stop', async (_e, slug: string) => {
@@ -446,6 +489,45 @@ function registerIPC(dbInfo: { dbPath: string; count: number }) {
 
   ipcMain.handle('site:launch-chrome', async (_e, url: string) => {
     return await launchInChrome(url);
+  });
+
+  ipcMain.handle('site:list-projects', () => {
+    return projectWorkspace.list();
+  });
+
+  ipcMain.handle('site:modify-project', async (_e, payload: { slug: string; instruction: string; provider?: string; modelName?: string }) => {
+    const project = projectWorkspace.getBySlug(payload.slug);
+    if (!project) return { success: false, error: `Project ${payload.slug} not found` };
+    projectWorkspace.updateStatus(project.id, 'MODIFYING');
+    const res = await autonomousDevEngine.modifyProject(project.project_dir, payload.instruction, payload.provider, payload.modelName);
+    if (res.success) {
+      projectWorkspace.updateStatus(project.id, 'RUNNING');
+    } else {
+      projectWorkspace.updateStatus(project.id, 'FAILED');
+    }
+    return res;
+  });
+
+  ipcMain.handle('site:get-logs', (_e, slug: string) => {
+    const project = projectWorkspace.getBySlug(slug);
+    if (!project) return [];
+    return projectWorkspace.getLogs(project.id);
+  });
+
+  ipcMain.handle('free-llm:list-endpoints', () => {
+    return freeLlmManager.listEndpoints();
+  });
+
+  ipcMain.handle('skills:list-agentic', () => {
+    return agenticSkillsEngine.listSkills();
+  });
+
+  ipcMain.handle('model:discover-keys', () => {
+    return smartModelRouter.discoverActiveProviders();
+  });
+
+  ipcMain.handle('model:auto-route', (_e, prompt: string) => {
+    return smartModelRouter.routePrompt(prompt);
   });
 
   // ── Phase 2 Model Gateway IPC ──

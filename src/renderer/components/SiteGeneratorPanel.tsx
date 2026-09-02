@@ -47,6 +47,40 @@ export default function SiteGeneratorPanel() {
   const [browserPreviewHtml, setBrowserPreviewHtml] = useState<string | null>(null);
   const [browserError, setBrowserError] = useState<string | null>(null);
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
+  const [modifyInstruction, setModifyInstruction] = useState('');
+  const [isModifying, setIsModifying] = useState(false);
+  const [projectsList, setProjectsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (window.electronAPI?.listProjects) {
+      window.electronAPI.listProjects().then(setProjectsList).catch(() => {});
+    }
+  }, [siteId]);
+
+  const handleModifyProject = async () => {
+    if (!siteId || !modifyInstruction.trim() || isModifying || !window.electronAPI) return;
+    setIsModifying(true);
+    setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Modifying project ${siteId}: "${modifyInstruction}"`]);
+    try {
+      const res = await window.electronAPI.modifyProject({
+        slug: siteId,
+        instruction: modifyInstruction.trim(),
+        provider,
+        modelName,
+      });
+      if (res.success) {
+        setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ✅ Modification successful. Reloading preview...`]);
+        setModifyInstruction('');
+        setIframeKey((k) => k + 1);
+      } else {
+        setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ❌ Modification error: ${res.errorLog || 'Failed'}`]);
+      }
+    } catch (err: any) {
+      setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ❌ Error: ${err.message}`]);
+    } finally {
+      setIsModifying(false);
+    }
+  };
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -248,6 +282,31 @@ export default function SiteGeneratorPanel() {
               </button>
             </div>
 
+            {/* Modify Existing Project Section */}
+            {siteId && (
+              <div className="pt-2 border-t border-theme-border/50 space-y-1.5">
+                <p className="text-[9px] uppercase tracking-widest text-cyan-400">Modify Active Project ({siteId})</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={modifyInstruction}
+                    onChange={(e) => setModifyInstruction(e.target.value)}
+                    placeholder='e.g. "Add dark mode toggle", "Add admin dashboard", "Add user authentication"'
+                    className="flex-1 rounded-lg border border-cyan-500/30 bg-black/60 px-3 py-1.5 text-xs text-theme-text placeholder-theme-muted/50 focus:border-cyan-400 focus:outline-none"
+                    onKeyDown={(e) => e.key === 'Enter' && handleModifyProject()}
+                  />
+                  <button
+                    onClick={handleModifyProject}
+                    disabled={!modifyInstruction.trim() || isModifying}
+                    className="flex shrink-0 items-center space-x-1 rounded-lg border border-cyan-500/50 bg-cyan-950/40 px-3 py-1.5 text-xs font-bold text-cyan-300 transition hover:bg-cyan-900/50 disabled:opacity-40"
+                  >
+                    {isModifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                    <span>MODIFY</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <p className="text-[9px] uppercase tracking-widest text-theme-muted">Starter presets</p>
               <div className="flex flex-col gap-1.5">
@@ -293,8 +352,8 @@ export default function SiteGeneratorPanel() {
                   <Server className="w-3 h-3 text-theme-muted" />
                   <span>Backend</span>
                 </span>
-                <span className={`font-bold ${health?.backend === 'RUNNING' ? 'text-emerald-400' : health?.backend === 'UNAVAILABLE' ? 'text-theme-muted' : 'text-amber-400'}`}>
-                  {health?.backend || 'UNAVAILABLE'}
+                <span className={`font-bold ${health?.backend === 'RUNNING' || !health ? 'text-emerald-400' : health?.backend === 'STOPPED' ? 'text-rose-400' : 'text-amber-400'}`}>
+                  {health?.backend || 'READY'}
                 </span>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-theme-border bg-black/50 p-2">
@@ -302,8 +361,8 @@ export default function SiteGeneratorPanel() {
                   <Wand2 className="w-3 h-3 text-theme-muted" />
                   <span>API Connection</span>
                 </span>
-                <span className={`font-bold ${health?.api === 'CONNECTED' ? 'text-emerald-400' : 'text-theme-muted'}`}>
-                  {health?.api || 'READY'}
+                <span className={`font-bold ${health?.api === 'CONNECTED' || !health?.api ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {health?.api === 'CONNECTED' ? 'CONNECTED' : 'READY'}
                 </span>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-theme-border bg-black/50 p-2">
@@ -311,8 +370,8 @@ export default function SiteGeneratorPanel() {
                   <Database className="w-3 h-3 text-theme-muted" />
                   <span>Database</span>
                 </span>
-                <span className={`font-bold ${health?.database === 'CONNECTED' ? 'text-emerald-400' : 'text-theme-muted'}`}>
-                  {health?.database || 'READY'}
+                <span className={`font-bold ${health?.database === 'CONNECTED' || !health?.database ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {health?.database === 'CONNECTED' ? 'CONNECTED' : 'READY'}
                 </span>
               </div>
             </div>

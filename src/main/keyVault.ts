@@ -1,7 +1,7 @@
 import { getDatabase } from './db';
 import { encryptString, decryptString, sanitizeErrorMessage, EncryptedPayload } from './security';
 
-export type Provider = 'anthropic' | 'openai' | 'google' | 'ollama' | 'omniroute';
+export type Provider = 'anthropic' | 'openai' | 'google' | 'ollama' | 'omniroute' | 'groq' | 'together' | 'cohere' | 'huggingface';
 
 export interface KeyVaultEntry {
   provider: Provider;

@@ -8,6 +8,7 @@
     "dev:renderer": "vite",
     "dev:electron": "npm run build:electron && electron .",
     "dev": "concurrently -k \"vite\" \"npm run build:electron && electron .\"",
+    "start": "npm run dev",
     "build:electron": "esbuild src/main/main.ts --bundle --platform=node --target=node20 --external:electron --external:better-sqlite3 --outfile=dist-electron/main.js && esbuild src/main/preload.ts --bundle --platform=node --target=node20 --external:electron --outfile=dist-electron/preload.js",
     "build:renderer": "vite build",
     "build": "npm run typecheck && npm run build:renderer && npm run build:electron",

@@ -6,7 +6,7 @@ import { getAnthropicToolsSchema, getOpenAIToolsSchema, getGoogleToolsSchema, ex
 import { requiresConfirmation, markConfirmedInSession } from './confirmation';
 import { logAudit } from './auditLog';
 
-export type Provider = 'anthropic' | 'openai' | 'google' | 'ollama' | 'omniroute';
+export type Provider = 'anthropic' | 'openai' | 'google' | 'ollama' | 'omniroute' | 'groq' | 'together' | 'cohere' | 'huggingface';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -44,6 +44,10 @@ export const DEFAULT_MODELS: Record<Provider, string> = {
   google: 'gemini-1.5-flash',
   ollama: 'llama3:latest',
   omniroute: 'auto',
+  groq: 'llama-3.3-70b-versatile',
+  together: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+  cohere: 'command-r-plus',
+  huggingface: 'Qwen/Qwen2.5-Coder-32B-Instruct',
 };
 
 /**
@@ -104,6 +108,9 @@ export async function streamChat(
   systemPrompt: string,
   onChunk: StreamCallback
 ): Promise<void> {
+  const { getApiKey } = require('./keyVault');
+  const { smartModelRouter } = require('./smartModelRouter');
+
   const currentIST = new Date().toLocaleTimeString('en-IN', {
     timeZone: 'Asia/Kolkata',
     hour: '2-digit',
@@ -113,31 +120,84 @@ export async function streamChat(
   });
   const effectiveSystemPrompt = `${systemPrompt || 'You are JARVIS, an advanced AI assistant.'}\n[System Context: Current live time in India (IST) is ${currentIST}. Always reply with exact 12-hour IST time when queried about current time.]`;
 
-  try {
-    switch (provider) {
-      case 'anthropic':
-        await streamAnthropic(apiKey, model, messages, effectiveSystemPrompt, onChunk);
-        break;
-      case 'openai':
-        await streamOpenAI(apiKey, model, messages, effectiveSystemPrompt, onChunk);
-        break;
-      case 'google':
-        await streamGoogle(apiKey, model, messages, effectiveSystemPrompt, onChunk);
-        break;
-      case 'omniroute':
-        await streamOmniRoute(model, messages, effectiveSystemPrompt, onChunk);
-        break;
-      case 'ollama':
-        await streamOllama(model, messages, systemPrompt, onChunk);
-        break;
-      default:
-        throw new Error(`Unknown provider: ${provider}`);
+  // Build failover provider list starting from requested provider, or auto-routed provider
+  const lastUserMsg = messages[messages.length - 1]?.content || '';
+  const route = smartModelRouter.routePrompt(lastUserMsg);
+
+  const preferredProvider = (provider && provider !== 'omniroute' ? provider : route.provider) as Provider;
+  const preferredModel = model || route.modelName;
+
+  // Key retrieval helper
+  const getKey = (p: Provider): string => {
+    if (p === preferredProvider && apiKey) return apiKey;
+    const vaultKey = getApiKey(p);
+    if (vaultKey) return vaultKey;
+    if (p === 'google') return process.env.GEMINI_API_KEY || '';
+    if (p === 'openai') return process.env.OPENAI_API_KEY || '';
+    if (p === 'anthropic') return process.env.ANTHROPIC_API_KEY || '';
+    if (p === 'groq') return process.env.GROQ_API_KEY || '';
+    if (p === 'together') return process.env.TOGETHER_API_KEY || '';
+    return '';
+  };
+
+  const candidateProviders: Array<{ provider: Provider; model: string }> = [
+    { provider: preferredProvider, model: preferredModel },
+    { provider: 'google', model: 'gemini-1.5-flash' },
+    { provider: 'openai', model: 'gpt-4o' },
+    { provider: 'anthropic', model: 'claude-3-5-sonnet-20241022' },
+    { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+    { provider: 'omniroute', model: 'auto' },
+    { provider: 'ollama', model: 'llama3:latest' },
+  ];
+
+  // Deduplicate candidates
+  const attempts: Array<{ provider: Provider; model: string; key: string }> = [];
+  const seen = new Set<string>();
+
+  for (const cand of candidateProviders) {
+    if (seen.has(cand.provider)) continue;
+    seen.add(cand.provider);
+    const key = getKey(cand.provider);
+    if (cand.provider === 'omniroute' || cand.provider === 'ollama' || key) {
+      attempts.push({ provider: cand.provider, model: cand.model, key });
     }
-  } catch (err) {
-    const safeMsg = sanitizeErrorMessage(err);
-    console.error(`[LLMAdapter] Stream error (${provider}): ${safeMsg}`);
-    onChunk({ type: 'error', error: safeMsg });
   }
+
+  let lastError: any = null;
+
+  for (const attempt of attempts) {
+    try {
+      console.log(`[LLMAdapter] Attempting stream with provider "${attempt.provider}" (model: ${attempt.model})`);
+      switch (attempt.provider) {
+        case 'anthropic':
+          await streamAnthropic(attempt.key, attempt.model, messages, effectiveSystemPrompt, onChunk);
+          return;
+        case 'openai':
+          await streamOpenAI(attempt.key, attempt.model, messages, effectiveSystemPrompt, onChunk);
+          return;
+        case 'google':
+          await streamGoogle(attempt.key, attempt.model, messages, effectiveSystemPrompt, onChunk);
+          return;
+        case 'omniroute':
+          await streamOmniRoute(attempt.model, messages, effectiveSystemPrompt, onChunk);
+          return;
+        case 'ollama':
+          await streamOllama(attempt.model, messages, effectiveSystemPrompt, onChunk);
+          return;
+        default:
+          await streamOmniRoute('auto', messages, effectiveSystemPrompt, onChunk);
+          return;
+      }
+    } catch (err) {
+      lastError = err;
+      const safeMsg = sanitizeErrorMessage(err);
+      console.warn(`[LLMAdapter] Failover notice: Provider "${attempt.provider}" failed: ${safeMsg}. Trying next candidate...`);
+    }
+  }
+
+  const safeMsg = sanitizeErrorMessage(lastError || 'All AI providers unavailable');
+  console.error(`[LLMAdapter] All streaming providers failed: ${safeMsg}`);
+  onChunk({ type: 'error', error: safeMsg });
 }
 
 async function streamAnthropic(

@@ -4,6 +4,7 @@ import { agentOrchestrator, AgentDefinition } from './agentOrchestrator';
 import { getDatabase } from './db';
 import { generateSitePipeline } from './siteGenerator';
 import { executeTool } from './tools';
+import { adapterRegistry } from './services/adapters/adapterRegistry';
 
 export interface ExecutionContext {
   missionId: string;
@@ -111,6 +112,61 @@ class ToolAdapter implements ExecutionAdapter {
   }
 }
 
+// ── 4. Universal Adapter Execution Adapter (routes to adapterRegistry) ──
+// Handles any task with input.type === 'adapter_execute'
+// This enables YouTube, Kimodo, Skills, Image, Voice adapters to
+// be triggered from any chat/voice command through the task graph.
+class AdapterExecutionAdapter implements ExecutionAdapter {
+  name = 'AdapterExecutionAdapter';
+
+  canHandle(task: Task): boolean {
+    return task.input?.type === 'adapter_execute' && !!task.input?.adapterId && !!task.input?.capability;
+  }
+
+  async execute(task: Task, agent: AgentDefinition, context: ExecutionContext): Promise<any> {
+    const { adapterId, capability, payload } = task.input;
+
+    const execId = `exec_task_${task.id}_${Date.now()}`;
+
+    // Check adapter is available
+    const adapter = adapterRegistry.get(adapterId);
+    if (!adapter) {
+      throw new Error(`Adapter "${adapterId}" not found in registry.`);
+    }
+    if (adapter.status !== 'READY') {
+      throw new Error(`Adapter "${adapterId}" is not READY (current status: ${adapter.status}).`);
+    }
+
+    const result = await adapterRegistry.execute(adapterId, {
+      executionId: execId,
+      adapterId,
+      capability,
+      missionId: context.missionId,
+      taskId: task.id,
+      payload: payload || task.input.args || {},
+      timestamp: new Date().toISOString(),
+    });
+
+    // Register artifact if adapter returned output
+    if (result.success && result.output) {
+      const artifact: Artifact = {
+        id: `art_${execId}`,
+        type: 'REPORT',
+        name: `${adapterId}:${capability}`,
+        path: `adapters/${adapterId}/${capability}`,
+        createdAt: new Date().toISOString(),
+        createdBy: agent.id,
+        missionId: context.missionId,
+        taskId: task.id,
+        metadata: { adapterId, capability, output: result.output },
+      };
+      registerArtifact(artifact);
+    }
+
+    return result;
+  }
+}
+
 // Helper to register artifacts in SQLite
 export function registerArtifact(artifact: Artifact): void {
   try {
@@ -148,6 +204,7 @@ export function registerArtifact(artifact: Artifact): void {
 
 export class TaskExecutor {
   private adapters: ExecutionAdapter[] = [
+    new AdapterExecutionAdapter(),   // ← Highest priority: all adapterRegistry-based tasks
     new DeterministicTestAdapter(),
     new WebsiteBuilderAdapter(),
     new ToolAdapter(),
